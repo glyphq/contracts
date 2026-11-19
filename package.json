@@ -49,25 +49,30 @@
   "packageManager": "bun@1.4.4",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "bun test",
-    "check": "bun run lint && bun run test && bun run build",
+    "check": "biome check . && bun run typecheck && bun run test && bun run build && bun run smoke:node-import",
+    "check:fix": "biome check --write .",
+    "smoke:node-import": "node -e \"import('./dist/index.js')\"",
     "generate": "bun scripts/generate.ts",
     "commitlint": "commitlint",
     "changeset": "changeset",
-    "changeset:publish": "changeset publish",
     "version": "changeset version",
+    "release": "changeset publish",
     "prepublishOnly": "bun run check",
     "audit": "bun audit --audit-level=high",
     "prepare": "husky"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.3",
     "@changesets/cli": "2.31.1",
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@types/bun": "1.4.4",
     "husky": "9.1.7",
+    "lint-staged": "^17.6.0",
     "typescript": "5.9.3"
   }
 }
