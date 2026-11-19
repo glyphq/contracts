@@ -1,0 +1,88 @@
+name: Generate ABI
+
+on:
+  schedule:
+    # qubic/core publishes weekly updates on Wednesday at 12:00 UTC.
+    - cron: "0 12 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: generate-abi
+  cancel-in-progress: false
+
+env:
+  BUN_VERSION: "1.4.4"
+
+jobs:
+  generate:
+    name: generate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Record current ABI hash
+        id: before
+        shell: bash
+        run: |
+          hash="$(sed -n 's/.*ABI_HASH = "\([a-f0-9]*\)".*/\1/p' src/generated/abi-hash.ts)"
+          printf 'hash=%s\n' "${hash}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate from qubic/core
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun run generate
+
+      - name: Detect ABI changes
+        id: changes
+        shell: bash
+        run: |
+          hash="$(sed -n 's/.*ABI_HASH = "\([a-f0-9]*\)".*/\1/p' src/generated/abi-hash.ts)"
+          printf 'hash=%s\n' "${hash}" >> "${GITHUB_OUTPUT}"
+          if [[ "${hash}" == "${{ steps.before.outputs.hash }}" ]]; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            echo "ABI is unchanged; discarding provenance-only updates."
+            git checkout -- src/generated
+          else
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+            echo "ABI changed: ${{ steps.before.outputs.hash }} -> ${hash}"
+          fi
+
+      - name: Run package checks
+        if: steps.changes.outputs.changed == 'true'
+        run: bun run check
+
+      - name: Open pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          branch="chore/abi-sync-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${branch}"
+          git add src/generated
+          git commit -m "chore(abi): sync generated contracts from qubic/core"
+          git push origin "${branch}"
+
+          body="$(printf 'Regenerated from the latest `qubic/core` commit.\n\nABI hash: `%s` -> `%s`\n\nReview the metadata diff for new or changed procedures, functions, and layouts.\n' "${{ steps.before.outputs.hash }}" "${{ steps.changes.outputs.hash }}")"
+          gh pr create \
+            --base main \
+            --head "${branch}" \
+            --title "chore(abi): sync generated contracts from qubic/core" \
+            --body "${body}"
