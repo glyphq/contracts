@@ -1,0 +1,34 @@
+name: Approve npm stage
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Approve staged publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          npm config set //registry.npmjs.org/:_authToken "${NPM_TOKEN}"
+          npm whoami
+          npm stage list --json > stages.json
+          cat stages.json
+          stage_id="$(node -e '
+            const items = JSON.parse(require("node:fs").readFileSync("stages.json", "utf8"))
+            const stage = items.find((item) => item.packageName === "@glyph-oss/contracts" && item.version === "0.1.0")
+            if (!stage) { console.error("No staged 0.1.0 publish found"); process.exit(1) }
+            process.stdout.write(stage.id)
+          ')"
+          echo "stage id: ${stage_id}"
+          npm stage approve "${stage_id}"
