@@ -33,12 +33,16 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Validate pull request commit messages
-        if: github.event_name == 'pull_request'
+      - name: Validate commit messages
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: bunx commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            bunx commitlint --last --verbose
+          else
+            bunx commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+          fi
 
       - name: Run package checks
         run: bun run check

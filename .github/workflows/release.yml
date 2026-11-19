@@ -121,7 +121,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           npm config set //registry.npmjs.org/:_authToken "${NPM_TOKEN}"
 
-          bun run changeset:publish
+          bun run release
           git push --follow-tags
 
           version="$(node -p "require('./package.json').version")"
