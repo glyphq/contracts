@@ -1,14 +1,73 @@
 {
-  "name": "contracts",
-  "module": "index.ts",
+  "name": "@glyph-oss/contracts",
+  "version": "0.1.0",
+  "description": "Typed Qubic contract ABIs, metadata, and wire codecs for TypeScript.",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glyphq/contracts.git"
+  },
+  "homepage": "https://glyphq.org",
+  "bugs": {
+    "url": "https://github.com/glyphq/contracts/issues"
+  },
+  "keywords": [
+    "glyph",
+    "glyphq",
+    "qubic",
+    "contracts",
+    "abi",
+    "codec",
+    "typescript"
+  ],
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "bun": ">=1.1.0",
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "packageManager": "bun@1.4.4",
   "scripts": {
-    "typecheck": "bun check"
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "check": "bun run lint && bun run test && bun run build",
+    "generate": "bun scripts/generate.ts",
+    "commitlint": "commitlint",
+    "changeset": "changeset",
+    "changeset:publish": "changeset publish",
+    "version": "changeset version",
+    "prepublishOnly": "bun run check",
+    "audit": "bun audit --audit-level=high",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^7"
+    "@changesets/cli": "2.31.1",
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@types/bun": "1.4.4",
+    "husky": "9.1.7",
+    "typescript": "5.9.3"
   }
 }
