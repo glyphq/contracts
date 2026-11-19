@@ -131,9 +131,9 @@ export interface ContractDefinition {
 	procedures: ContractCall[]
 	functions: ContractCall[]
 	notifications: ContractCall[]
-	/** Structs referenced by this contract's calls, keyed by qualified name. */
+	/** Every decodable struct declared by this contract, keyed by qualified name. */
 	structs: Record<string, ContractStruct>
-	/** Enums referenced by this contract's calls, keyed by qualified name. */
+	/** Enums declared or referenced by this contract, keyed by qualified name. */
 	enums: Record<string, ContractEnum>
 }
 
@@ -147,9 +147,19 @@ export interface ContractSourceMetadata {
 	commitDate: string
 }
 
+/** Struct and enum definitions shared outside a single contract. */
+export interface StructScope {
+	/** Structs keyed by qualified name, e.g. `QPI::Entity`. */
+	structs: Record<string, ContractStruct>
+	/** Enums keyed by qualified name, e.g. `QPI::ProposalTypes`. */
+	enums: Record<string, ContractEnum>
+}
+
 export interface ContractMetadata {
 	schemaVersion: 1
 	source: ContractSourceMetadata
+	/** Shared QPI types that are not owned by a single contract. */
+	qpi?: StructScope
 	contracts: ContractDefinition[]
 }
 
@@ -174,9 +184,11 @@ export interface EncodeOptions {
 export interface DecodeOptions {
 	/**
 	 * Convert a 32-byte public key into a 60-character Qubic identity.
-	 * When omitted, `id` fields are returned as lowercase hex strings.
+	 * When omitted, `id` fields are returned as 60-character identities.
 	 */
 	publicKeyToIdentity?: (publicKey: Uint8Array) => string
+	/** Return `id` fields as identities (default) or lowercase hex. */
+	idFormat?: 'identity' | 'hex'
 	/**
 	 * Return enum labels instead of numeric values. Unknown values stay
 	 * numeric so decoding never loses information.
